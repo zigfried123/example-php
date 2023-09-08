@@ -1,0 +1,67 @@
+<?php
+
+
+namespace app\modules\reports\models\orders;
+
+
+use app\modules\order\models\Order;
+
+class ExcelOrderReportFormatter
+{
+    private $orders;
+
+    /**
+     * ExcelOrderReportFormatter constructor.
+     * @param Order[] $orders
+     */
+    function __construct(array $orders)
+    {
+        $this->orders = $orders;
+    }
+
+    /**
+     * @return array
+     */
+    public function getExportData()
+    {
+        $exportData = [];
+
+        foreach ($this->orders as $order) {
+            $exportData[] = $order->getDump();
+        }
+
+        return $exportData;
+    }
+
+    /**
+     * @return array
+     */
+    public function getHeaders()
+    {
+        return [
+            'order_number'     => t('order', 'Order number'),
+            'device'           => t('order', 'Device'),
+            'status'           => t('order', 'Status'),
+            'address'          => t('order', 'Address'),
+            'worker'           => t('employee', 'Worker'),
+            'car'              => t('car', 'Car'),
+            'review'           => t('order', 'Review'),
+            'rating'           => t('client', 'Rating'),
+            'wait_time'        => t('order', 'Time waiting') . '(' . t('app', 'min.') . ')',
+            'summary_time'     => t('order', 'Summary time') . '(' . t('app', 'min.') . ')',
+            'summary_distance' => t('order', 'Summary distance') . '(' . t('app', 'km') . ')',
+            'summary_cost'     => t('order', 'Cost'),
+            'client'           => t('client', 'From client'),
+            'order_time'       => t('order', 'Order time'),
+            'client_phone'     => t('client', 'Phone'),
+        ];
+    }
+
+    /**
+     * @return string
+     */
+    public function getName()
+    {
+        return 'reportOrders';
+    }
+}

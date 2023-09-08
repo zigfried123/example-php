@@ -1,0 +1,123 @@
+<?php
+
+namespace app\modules\reports\models\orders\factories;
+
+use app\modules\order\models\OrderStatus;
+use app\modules\order\services\OrderService;
+use common\services\OrderStatusService;
+use frontend\modules\reports\models\orders\services\OrderReportExporterService;
+
+class OrderReportExporterByReportType
+{
+    const REPORT_TYPE_CLIENT = 'client';
+    const REPORT_TYPE_COMPANY = 'company';
+    const REPORT_TYPE_STATISTIC = 'statistic';
+
+    /**
+     * @param $reportType
+     *
+     * @return mixed
+     */
+    public function initialize($reportType)
+    {
+        $classname = 'app\\modules\\reports\\models\\orders\\exporters\\byReport\\Order' . ucfirst($reportType) . 'ReportExporter';
+
+        return new $classname();
+    }
+
+
+    /**
+     * @param $model
+     *
+     * @return array
+     */
+    public function getColumns($model)
+    {
+
+        return [
+            [
+                'attribute' => 'order_number',
+                'label'     => t('order', 'Order number'),
+                'value'     => $model->order_number
+
+            ],
+            [
+                'attribute' => 'order_time',
+                'label'     => t('order', 'Order time'),
+                'value'     => app()->formatter->asDateTime($model->create_time + $model->getOrderOffset(), 'short')
+            ],
+            [
+                'attribute' => 'pre_order_time',
+                'label'     => t('order', 'Pre order time'),
+                'value'       => OrderReportExporterService::getPreOrderTime($model)
+            ],
+            [
+                'attribute' => 'order_end_time',
+                'label'     => t('order', 'Order end time'),
+                'value'     => app()->formatter->asDateTime($model->status_time + $model->getOrderOffset(), 'short')
+
+            ],
+            [
+                'attribute' => 'device',
+                'label'     => t('order', 'Device'),
+                'value'     => $model->getDeviceName()
+            ],
+            [
+                'attribute' => 'status',
+                'label'     => t('order', 'Status'),
+                'value'     => OrderStatusService::translate($model->status_id, $model->position_id)
+            ],
+            [
+                'attribute' => 'address',
+                'label'     => t('order', 'Address'),
+                'value'     => $model->getAddress()
+            ],
+            [
+                'attribute' => 'worker',
+                'label'     => t('employee', 'Worker'),
+                'value'     => $model->worker->fullName ?: ''
+
+            ],
+            [
+                'attribute' => 'car',
+                'label'     => t('car', 'Car'),
+                'value'     => !empty($model->car) ? $model->car->name . ' ' . $model->car->gos_number : ''
+
+            ],
+            [
+                'attribute' => 'review',
+                'label'     => t('order', 'Review'),
+                'value'     => $model->clientReview->text ?: ''
+            ],
+            [
+                'attribute' => 'rating',
+                'label'     => t('client', 'Rating'),
+                'value'     => $model->clientReview->rating ?: ''
+            ],
+            [
+                'attribute' => 'wait_time',
+                'label'     => t('order', 'Time waiting') . '(' . t('app', 'min.') . ')',
+                'value'     => (string)$model->getWaitTime()
+            ],
+            [
+                'attribute' => 'summary_time',
+                'label'     => t('order', 'Summary time') . '(' . t('app', 'min.') . ')',
+                'value'     => (string)$model->getSummaryTime()
+            ],
+            [
+                'attribute' => 'summary_distance',
+                'label'     => t('order', 'Summary distance') . '(' . t('app', 'km') . ')',
+                'value'     => (string)$model->getSummaryDistance()
+            ],
+            [
+                'attribute' => 'summary_cost',
+                'label'     => t('order', 'Cost'),
+                'value'     => (string)$model->getSummaryCost()
+            ],
+
+        ];
+
+
+    }
+
+}

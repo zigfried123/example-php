@@ -1,0 +1,51 @@
+<?php
+
+namespace app\modules\reports\models\orders;
+
+class OrderReportExporter
+{
+    const EXPORT_TYPE_EXCEL = 'excel';
+    const EXPORT_TYPE_PDF = 'pdf';
+
+    const REPORT_TYPE_CLIENT = 'client';
+    const REPORT_TYPE_COMPANY = 'company';
+    const REPORT_TYPE_STATISTIC = 'statistic';
+
+    protected $exportType;
+    protected $query;
+    protected $content;
+    protected $columns;
+
+
+    public function __construct($exportType,$data){
+        $this->exportType = $exportType;
+        $this->query = $data['query'];
+        $this->content = $data['content'];
+        $this->columns = $data['columns'];
+
+    }
+
+    /**
+     * @param $exportType
+     * @param $content
+     * @param $columns
+     *
+     * @return bool
+     */
+    public function export()
+    {
+
+        $class = 'app\\modules\\reports\\models\\orders\\Order' . ucfirst($this->exportType) . 'ReportExporterFactory';
+
+        $obj = new $class($this->query,$this->content,$this->columns);
+
+        if($obj->export()){
+            return true;
+        }
+
+        return false;
+
+    }
+
+
+}

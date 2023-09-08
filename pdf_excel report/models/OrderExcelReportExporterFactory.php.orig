@@ -1,0 +1,80 @@
+<?php
+
+namespace app\modules\reports\models\orders;
+
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use yii\db\Exception;
+use yii\helpers\ArrayHelper;
+
+class OrderExcelReportExporterFactory extends OrderReportExporterFactoryByExportType
+{
+    private $query;
+    private $modelColumns;
+    private $sheet;
+
+    public function __construct($query, $content, $modelColumns)
+    {
+        $this->query        = $query;
+        $this->modelColumns = $modelColumns;
+    }
+
+    /**
+     * @param $content
+     * @param $columns
+     *
+     * @throws Exception
+     */
+    public function export()
+    {
+
+        if ($this->query->count() == 0) {
+            throw new Exception('Data is empty');
+        }
+
+        $spreadsheet = new Spreadsheet();
+        $this->sheet = $spreadsheet->getActiveSheet();
+
+        //dd($this->query->all()[0]);
+
+        $numColumns = count($this->modelColumns->getColumns($this->query->all()[0]));
+
+        $numRows = 6;
+
+        $this->writeRows($numColumns, $numRows);
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('test.xlsx');
+
+        header('Content-type: application/octet-stream');
+        header('Content-Length: ' . filesize('test.xlsx'));
+        header('Content-Disposition: attachment; filename="test.xlsx"');
+
+        readfile('test.xlsx');
+
+    }
+
+    private function writeRows($numColumns, $numRows)
+    {
+
+        for ($i = 0; $i < $numColumns; $i++) {
+
+            foreach ($this->getHeaders() as $key => $header) {
+                $this->sheet->setCellValueByColumnAndRow($key + 1, 1, $header);
+            }
+
+            for ($i2 = 0; $i2 < $numRows; $i2++) {
+
+                $this->sheet->setCellValueByColumnAndRow($i + 1, $i2 + 2,
+                    $this->modelColumns->getColumns($this->query->all()[$i2])[$i]['value']);
+
+            }
+
+        }
+    }
+
+    private function getHeaders()
+    {
+        return ArrayHelper::getColumn($this->modelColumns->getColumns($this->query->all()[0]), 'label');
+    }
+
+}

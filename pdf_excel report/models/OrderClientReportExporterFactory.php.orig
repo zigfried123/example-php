@@ -1,0 +1,31 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: zigfried123
+ * Date: 17.11.2017
+ * Time: 10:41
+ */
+
+namespace app\modules\reports\models\orders;
+
+
+class OrderClientReportExporterFactory extends OrderReportExporterFactoryByReportType
+{
+    public function getColumns($model)
+    {
+
+        $columns = parent::getColumns($model);
+
+        $columns[] =
+            [
+                'attribute' => 'From organization',
+                'label'     => t('client', 'From organization'),
+                'value'     => function ($model) {
+                    return !empty($model->company) ? $model->company->name : '';
+                },
+            ];
+
+        return $columns;
+    }
+
+}

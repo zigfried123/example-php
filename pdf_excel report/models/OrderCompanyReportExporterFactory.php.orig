@@ -1,0 +1,47 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: zigfried123
+ * Date: 17.11.2017
+ * Time: 10:40
+ */
+
+namespace app\modules\reports\models\orders;
+
+
+class OrderCompanyReportExporterFactory extends OrderReportExporterFactoryByReportType
+{
+
+    public function getColumns($model)
+    {
+
+        $columns = parent::getColumns($model);
+
+        $columns = array_merge($columns, [
+                [
+                    'attribute' => 'client',
+                    'label'     => t('client', 'From client'),
+                    'value'     =>  $model->client->getFullName()
+                ],
+
+                [
+                    'attribute' => 'order_time',
+                    'label'     => t('order', 'Order time'),
+                    'value'     => app()->formatter->asDateTime($model->order_time, 'short')
+                ],
+
+                [
+                    'attribute' => 'client_phone',
+                    'label'     => t('client', 'Phone'),
+                    'value'     => getValue($model->client->clientPhones[0]->value)
+                ],
+
+            ]
+        );
+
+        return $columns;
+
+    }
+
+
+}

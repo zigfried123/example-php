@@ -1,0 +1,28 @@
+<?php
+
+/* @var $model \app\modules\client\models\OrderClientSearch */
+/* @var $this yii\web\View */
+
+use yii\helpers\Html;
+
+if (!empty($model->worker)) {
+
+    $worker =
+        Html::a(
+//            Html::tag('span', $model->worker->logo, ['class' => 'pt_photo']) .
+            Html::tag('span', Html::encode($model->worker->fullName), ['class' => 'pt_fios']),
+        ['/employee/worker/update', 'id' => $model->worker_id], ['data-pjax' => 0]);
+
+    if(!empty($model->car)) {
+        $car = '<br/>' . Html::a(Html::encode($model->car->name), ['/car/car/update', 'id' => $model->car->car_id])
+            . Html::tag('span', Html::encode($model->car->gos_number), [
+                'style' => 'display: block; margin-bottom: 8px',
+                'dir' => 'auto',
+            ]);
+    } else {
+        $car = '';
+    }
+    if($model->worker->phone !== '') {
+        echo $worker . HTML::a('', "tel:+{$model->worker->phone}", ['class' => 'order_table_call']) . $car;
+    }
+}

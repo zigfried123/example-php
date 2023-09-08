@@ -1,0 +1,12 @@
+<?php
+namespace app\modules\reports\models\orders;
+
+class OrderStatisticReportExporterFactory extends OrderReportExporterFactoryByReportType
+{
+
+    public function getColumns($model){
+        return parent::getColumns($model);
+    }
+
+
+}

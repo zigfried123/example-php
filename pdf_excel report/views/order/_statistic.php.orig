@@ -1,0 +1,517 @@
+<?php
+
+/* @var string $pjaxId */
+/* @var array $statistics */
+/* @var array $this yii\web\View */
+/* @var $searchModel \app\modules\client\models\OrderClientSearch */
+/* @var array $positionMap */
+/* @var array $cityList */
+
+use app\modules\order\models\Order;
+use app\modules\reports\models\orders\OrderReport;
+use frontend\modules\tenant\models\Currency;
+use frontend\widgets\filter\Filter;
+use yii\helpers\Html;
+use yii\widgets\Pjax;
+
+$pjaxId = 'pjax_statistics';
+
+$filter = Filter::begin([
+    'pjaxId'   => $pjaxId,
+    'model'    => $searchModel,
+    'onSubmit' => true,
+    'onChange' => false,
+]);
+echo $filter->dropDownList('city_id', $cityList);
+echo $filter->checkboxList('position_id', $positionMap, ['label' => t('reports', 'All professions')]);
+echo $filter->radioList('type',
+    [
+        'today'     => [
+            'label' => t('reports', 'Today'),
+        ],
+        'yesterday' => [
+            'label' => t('reports', 'Yesterday'),
+        ],
+        'month'     => [
+            'label' => app()->formatter->asDate(time(), 'LLLL'),
+        ],
+        'period'    => [
+            'label'   => t('reports', 'Period'),
+            'content' => $filter->datePeriod(['first_date', 'second_date'], [
+                date("d.m.Y", mktime(0, 0, 0, date("m"), date("d") - 2, date("Y"))),
+                date("d.m.Y", mktime(0, 0, 0, date("m"), date("d"), date("Y"))),
+            ], ['class' => 'cof_date']),
+        ],
+    ], [], ['class' => 'filter_item_2', 'style' => 'width:auto']);
+
+echo $filter->button(t('reports','Show'), [], ['style' => 'width:auto']);
+
+Filter::end();
+Pjax::begin(['id' => $pjaxId]);
+
+if (!empty($statistics)):
+    $iosCnt = count($statistics['received']['device']['IOS']);
+    $iosCnt = $iosCnt ?: 1;
+
+    $androidCnt = count($statistics['received']['device']['ANDROID']);
+    $androidCnt = $androidCnt ?: 1;
+
+    $appCnt = $iosCnt + $androidCnt;
+    ?>
+    <div class="oor_content">
+        <table>
+            <tbody>
+            <tr>
+                <th style="width: 31%; text-align: left;"><b><?= t('reports', 'Status') ?></b>
+                </th>
+                <th style="width: 7%;"><?= t('reports', 'Total') ?></th>
+                <th style="width: 7%;"></th>
+                <th style="width: 11%;"><?= t('reports', 'Sum') ?></th>
+                <?php if (!empty($statistics['received']['device']['IOS'])): ?>
+                    <?php foreach ($statistics['received']['device']['IOS'] as $appId => $deviceCnt): ?>
+                        <th style="width: 7%;"><i title="<?= $appId ?>" class="osi_ios"></i>
+                        </th>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <th style="width: 7%;"><i class="osi_ios"></i></th>
+                <?php endif; ?>
+                <?php if (!empty($statistics['received']['device']['ANDROID'])): ?>
+                    <?php foreach ($statistics['received']['device']['ANDROID'] as $appId => $deviceCnt): ?>
+                        <th style="width: 5%;"><i title="<?= $appId ?>" class="osi_andr"></i>
+                        </th>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <th style="width: 5%;"><i class="osi_andr"></i></th>
+                <?php endif; ?>
+                <th style="width: 5%;"><i class="osi_dis"></i>
+                </th>
+                <th style="width: 5%;"><i class="osi_dr"></i>
+                </th>
+                <th style="width: 5%;"><i class="osi_web"></i>
+                </th>
+                <th style="width: 5%;"><i class="osi_cab"></i>
+                </th>
+                <th style="width: 9%;"><?= t('reports', 'Drivers') ?></th>
+                <th style="width: 3%;">
+                </th>
+            </tr>
+            <tr class="oor_thead" data-thead="01">
+                <td style="text-align: left;"><b><?= t('reports', 'Received') ?></b></td>
+                <td><b><?= Html::encode($statistics['received']['quantity']); ?></b></td>
+                <td><span>100%</span></td>
+                <td></td>
+                <?php if (!empty($statistics['received']['device']['IOS'])): ?>
+                    <?php foreach ($statistics['received']['device']['IOS'] as $deviceCnt): ?>
+                        <td><?= Html::encode($deviceCnt) ?></td>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <td>0</td>
+                <?php endif; ?>
+                <?php if (!empty($statistics['received']['device']['ANDROID'])): ?>
+                    <?php foreach ($statistics['received']['device']['ANDROID'] as $deviceCnt): ?>
+                        <td><?= Html::encode($deviceCnt) ?></td>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <td>0</td>
+                <?php endif; ?>
+                <td><?= Html::encode($statistics['received']['device']['DISPATCHER']) ?></td>
+                <td><?= Html::encode($statistics['received']['device']['WORKER']) ?></td>
+                <td><?= Html::encode($statistics['received']['device']['WEB']) ?></td>
+                <td><?= Html::encode($statistics['received']['device']['CABINET']) ?></td>
+                <td></td>
+                <td><? if (!empty($statistics['received']['quantity'])): ?><i class="oor_t_arrow"><? endif ?></i></td>
+            </tr>
+            <?
+            $parking_quantity_sum = 0;
+            foreach ($statistics['received']['detail'] as $parking_id => $val):
+                $parking_quantity_sum += $val['quantity'];
+                ?>
+                <tr data-theadc="01" class="oor_first" style="display: none">
+                    <td style="text-align: left;"><b><?= Html::encode($statistics['parking_map'][$parking_id]) ?></b>
+                    </td>
+                    <td><b><?= Html::encode($val['quantity']) ?></b></td>
+                    <td><span><?= Html::encode($val['percent']) ?></span></td>
+                    <td></td>
+                    <?php if (!empty($val['IOS'])): ?>
+                        <?php foreach ($val['IOS'] as $deviceCnt): ?>
+                            <td><?= Html::encode($deviceCnt) ?></td>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <td>0</td>
+                    <?php endif; ?>
+                    <?php if (!empty($val['ANDROID'])): ?>
+                        <?php foreach ($val['ANDROID'] as $deviceCnt): ?>
+                            <td><?= Html::encode($deviceCnt) ?></td>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <td>0</td>
+                    <?php endif; ?>
+                    <td><?= Html::encode($val['DISPATCHER']) ?></td>
+                    <td><?= Html::encode($val['WORKER']) ?></td>
+                    <td><?= Html::encode($val['WEB']) ?></td>
+                    <td><?= Html::encode($val['CABINET']) ?></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            <? endforeach; ?>
+            <?
+            if ($parking_quantity_sum != $statistics['received']['quantity']):
+                $no_parking_quantity = $statistics['received']['quantity'] - $parking_quantity_sum;
+                ?>
+                <tr data-theadc="01" class="oor_first" style="display: none">
+                    <td style="text-align: left;"><b><?= t('order', 'Parking is not defined') ?></b></td>
+                    <td><b><?= Html::encode($no_parking_quantity) ?></b></td>
+                    <td><span><?= app()->formatter->format($no_parking_quantity / $statistics['received']['quantity'],
+                                ['percent', OrderReport::PERCENT_DIGIT]) ?></span></td>
+                    <?php for ($i = 0; $i < $appCnt; $i++): ?>
+                        <td></td>
+                    <?php endfor; ?>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            <? endif ?>
+            <tr class="empty_tr">
+                <td style="padding: 5px;"></td>
+            </tr>
+            <tr class="oor_thead" data-thead="02">
+                <td style="text-align: left;"><b><?= t('reports', 'Pre order') ?></b></td>
+                <td><b><?= Html::encode($statistics['pre_order']['quantity']) ?></b></td>
+                <td><span><?= Html::encode($statistics['pre_order']['percent']) ?></span></td>
+                <td></td>
+                <?php if (!empty($statistics['pre_order']['device']['IOS'])): ?>
+                    <?php foreach ($statistics['pre_order']['device']['IOS'] as $deviceCnt): ?>
+                        <td><?= Html::encode($deviceCnt) ?></td>
+                    <? endforeach; ?>
+                <?php else: ?>
+                    <td>0</td>
+                <?php endif; ?>
+                <?php if (!empty($statistics['pre_order']['device']['ANDROID'])): ?>
+                    <?php foreach ($statistics['pre_order']['device']['ANDROID'] as $deviceCnt): ?>
+                        <td><?= Html::encode($deviceCnt) ?></td>
+                    <? endforeach; ?>
+                <?php else: ?>
+                    <td>0</td>
+                <?php endif; ?>
+                <td><?= Html::encode($statistics['pre_order']['device']['DISPATCHER']) ?></td>
+                <td><?= Html::encode($statistics['pre_order']['device']['WORKER']) ?></td>
+                <td><?= Html::encode($statistics['pre_order']['device']['WEB']) ?></td>
+                <td><?= Html::encode($statistics['pre_order']['device']['CABINET']) ?></td>
+                <td></td>
+                <td><? if (!empty($statistics['pre_order']['quantity'])): ?><i class="oor_t_arrow"><? endif ?></i></td>
+            </tr>
+            <?
+            $parking_quantity_sum = 0;
+            foreach ($statistics['pre_order']['detail'] as $parking_id => $val):
+                $parking_quantity_sum += $val['quantity'];
+                ?>
+                <tr data-theadc="02" class="oor_first" style="display: none">
+                    <td style="text-align: left;"><b><?= Html::encode($statistics['parking_map'][$parking_id]) ?></b>
+                    </td>
+                    <td><b><?= Html::encode($val['quantity']) ?></b></td>
+                    <td><span><?= Html::encode($val['percent']) ?></span></td>
+                    <td></td>
+                    <?php if (!empty($val['IOS'])): ?>
+                        <?php foreach ($val['IOS'] as $deviceCnt): ?>
+                            <td><?= Html::encode($deviceCnt) ?></td>
+                        <? endforeach; ?>
+                    <?php else: ?>
+                        <td>0</td>
+                    <?php endif; ?>
+                    <?php if (!empty($val['ANDROID'])): ?>
+                        <?php foreach ($val['ANDROID'] as $deviceCnt): ?>
+                            <td><?= Html::encode($deviceCnt) ?></td>
+                        <? endforeach; ?>
+                    <?php else: ?>
+                        <td>0</td>
+                    <?php endif; ?>
+                    <td><?= Html::encode($val['DISPATCHER']) ?></td>
+                    <td><?= Html::encode($val['WORKER']) ?></td>
+                    <td><?= Html::encode($val['WEB']) ?></td>
+                    <td><?= Html::encode($val['CABINET']) ?></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            <? endforeach; ?>
+            <?
+            if ($parking_quantity_sum != $statistics['pre_order']['quantity']):
+                $no_parking_quantity = $statistics['pre_order']['quantity'] - $parking_quantity_sum;
+                ?>
+                <tr data-theadc="02" class="oor_first" style="display: none">
+                    <td style="text-align: left;"><b><?= t('order', 'Parking is not defined') ?></b></td>
+                    <td><b><?= Html::encode($no_parking_quantity) ?></b></td>
+                    <td><span><?= app()->formatter->format($no_parking_quantity / $statistics['pre_order']['quantity'],
+                                ['percent', OrderReport::PERCENT_DIGIT]) ?></span></td>
+                    <?php for ($i = 0; $i < $appCnt; $i++): ?>
+                        <td></td>
+                    <?php endfor; ?>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            <? endif ?>
+            <?
+            $on_the_go = $statistics['received']['quantity'] - ($statistics['pre_order']['quantity'] + $statistics['completed']['quantity'] + $statistics['rejected']['quantity']);
+            if ($on_the_go > 0):
+                ?>
+                <tr class="empty_tr">
+                    <td style="padding: 5px;"></td>
+                </tr>
+                <tr class="oor_thead">
+                    <td style="text-align: left;"><b><?= t('reports', 'On the go') ?></b></td>
+                    <td><b><?= Html::encode($on_the_go); ?></b></td>
+                    <td><span><?= app()->formatter->format($on_the_go / $statistics['received']['quantity'],
+                                ['percent', OrderReport::PERCENT_DIGIT]) ?></span></td>
+                    <?php for ($i = 0; $i < $appCnt; $i++): ?>
+                        <td></td>
+                    <?php endfor; ?>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            <? endif ?>
+            <tr class="empty_tr">
+                <td style="padding: 5px;"></td>
+            </tr>
+            <tr class="oor_thead" data-thead="03">
+                <td style="text-align: left;"><b><?= t('reports', 'Completed') ?></b></td>
+                <td><b><?= Html::encode($statistics['completed']['quantity']) ?></b></td>
+                <td><span><?= Html::encode($statistics['completed']['percent']) ?></span></td>
+                <td>
+                    <b>
+                        <?php
+                        $summary = [];
+                        foreach ($statistics['completed']['sum'] as $currency_id => $sum) {
+                            $summary[] = app()->formatter->asMoney(
+                                +$sum, Currency::getCurrencySymbol($currency_id));
+                        }
+                        echo join(", ", $summary);
+                        ?>
+                    </b>
+                </td>
+                <?php if (!empty($statistics['completed']['device']['IOS'])): ?>
+                    <?php foreach ($statistics['completed']['device']['IOS'] as $deviceCnt): ?>
+                        <td><?= Html::encode($deviceCnt) ?></td>
+                    <? endforeach; ?>
+                <?php else: ?>
+                    <td>0</td>
+                <?php endif; ?>
+                <?php if (!empty($statistics['completed']['device']['ANDROID'])): ?>
+                    <?php foreach ($statistics['completed']['device']['ANDROID'] as $deviceCnt): ?>
+                        <td><?= Html::encode($deviceCnt) ?></td>
+                    <? endforeach; ?>
+                <?php else: ?>
+                    <td>0</td>
+                <?php endif; ?>
+                <td><?= Html::encode($statistics['completed']['device']['DISPATCHER']) ?></td>
+                <td><?= Html::encode($statistics['completed']['device']['WORKER']) ?></td>
+                <td><?= Html::encode($statistics['completed']['device']['WEB']) ?></td>
+                <td><?= Html::encode($statistics['completed']['device']['CABINET']) ?></td>
+                <td><?= Html::encode($statistics['completed']['workers']) ?></td>
+                <td><? if (!empty($statistics['completed']['quantity'])): ?><i class="oor_t_arrow"><? endif ?></i></td>
+            </tr>
+            <? if (!empty($statistics['completed']['quantity'])): ?>
+                <tr data-theadc="03" class="oor_first oor_mini_title" style="display: none">
+                    <td colspan="<?= 10 + $appCnt ?>>"><h4><?= t('reports', 'Tariffs') ?></h4></td>
+                </tr>
+                <? foreach ($statistics['completed']['detail']['tariffs'] as $tariff_id => $val): ?>
+                    <tr data-theadc="03" class="oor_first" style="display: none">
+                        <td style="text-align: left;"><b><?= Html::encode($statistics['tariff_map'][$tariff_id]) ?></b>
+                        </td>
+                        <td><b><?= Html::encode($val['quantity']); ?></b></td>
+                        <td><span><?= Html::encode($val['percent']); ?></span></td>
+                        <td></td>
+                        <?php if (!empty($val['IOS'])): ?>
+                            <?php foreach ($val['IOS'] as $deviceCnt): ?>
+                                <td><?= Html::encode($deviceCnt); ?></td>
+                            <? endforeach; ?>
+                        <?php else: ?>
+                            <td>0</td>
+                        <?php endif; ?>
+                        <?php if (!empty($val['ANDROID'])): ?>
+                            <?php foreach ($val['ANDROID'] as $deviceCnt): ?>
+                                <td><?= Html::encode($deviceCnt); ?></td>
+                            <? endforeach; ?>
+                        <?php else: ?>
+                            <td>0</td>
+                        <?php endif; ?>
+                        <td><?= Html::encode($val['DISPATCHER']); ?></td>
+                        <td><?= Html::encode($val['WORKER']); ?></td>
+                        <td><?= Html::encode($val['WEB']); ?></td>
+                        <td><?= Html::encode($val['CABINET']); ?></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                <? endforeach; ?>
+                <tr data-theadc="03" class="oor_first oor_mini_title" style="display: none">
+                    <td colspan="<?= 10 + $appCnt ?>"><h4><?= t('reports', 'Forms of payment') ?></h4></td>
+                </tr>
+                <? $paymentList = Order::getPaymentVariants() ?>
+                <? foreach ($statistics['completed']['detail']['payment'] as $payment => $val): ?>
+                    <tr data-theadc="03" class="oor_first" style="display: none">
+                        <td style="text-align: left;"><b><?= Html::encode(getValue($paymentList[$payment])); ?></b></td>
+                        <td><b><?= Html::encode($val['quantity']) ?></b></td>
+                        <td><span><?= Html::encode($val['percent']) ?></span></td>
+                        <td></td>
+                        <?php if (!empty($val['IOS'])): ?>
+                            <?php foreach ($val['IOS'] as $deviceCnt): ?>
+                                <td><?= Html::encode($deviceCnt); ?></td>
+                            <? endforeach; ?>
+                        <?php else: ?>
+                            <td>0</td>
+                        <?php endif; ?>
+                        <?php if (!empty($val['ANDROID'])): ?>
+                            <?php foreach ($val['ANDROID'] as $deviceCnt): ?>
+                                <td><?= Html::encode($deviceCnt); ?></td>
+                            <? endforeach; ?>
+                        <?php else: ?>
+                            <td>0</td>
+                        <?php endif; ?>
+                        <td><?= Html::encode($val['DISPATCHER']) ?></td>
+                        <td><?= Html::encode($val['WORKER']) ?></td>
+                        <td><?= Html::encode($val['WEB']) ?></td>
+                        <td><?= Html::encode($val['CABINET']) ?></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                <? endforeach; ?>
+                <tr data-theadc="03" class="oor_first oor_mini_title" style="display: none">
+                    <td colspan="<?= 10 + $appCnt ?>"><h4><?= t('reports', 'Averages') ?></h4></td>
+                </tr>
+                <tr data-theadc="03" class="oor_first" style="display: none">
+                    <td style="text-align: left;" colspan="3"><b><?= t('reports', 'The average order value') ?></b></td>
+                    <td>
+                        <b>
+                            <?php
+                            $summary = [];
+                            foreach ($statistics['completed']['detail']['averages']['price'] as $currency_id => $sum) {
+                                $summary[] = app()->formatter->asMoney(
+                                    +$sum, Currency::getCurrencySymbol($currency_id));
+                            }
+                            echo join(", ", $summary);
+                            ?>
+                        </b>
+                    </td>
+                    <?php for ($i = 0; $i < $appCnt; $i++): ?>
+                        <td></td>
+                    <?php endfor; ?>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr data-theadc="03" class="oor_first" style="display: none">
+                    <td style="text-align: left;" colspan="3"><b><?= t('reports', 'The median time to feed cars') ?></b>
+                    </td>
+                    <td>
+                        <b><?= $statistics['completed']['detail']['averages']['pick_up'] ? Html::encode($statistics['completed']['detail']['averages']['pick_up']) : 0 ?> <?= t('app',
+                                'min.') ?></b></td>
+                    <?php for ($i = 0; $i < $appCnt; $i++): ?>
+                        <td></td>
+                    <?php endfor; ?>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr class="empty_tr">
+                    <td style="padding: 5px;"></td>
+                </tr>
+            <? endif ?>
+            <tr class="oor_thead oort_red" data-thead="04">
+                <td style="text-align: left;"><b><?= t('reports', 'Warning and rejected') ?></b></td>
+                <td><b><?= Html::encode($statistics['rejected']['quantity']) ?></b></td>
+                <td><span><?= Html::encode($statistics['rejected']['percent']) ?></span></td>
+                <td>
+                    <b>
+                        <?php
+                        $summary = [];
+                        foreach ($statistics['rejected']['sum'] as $currency_id => $sum) {
+                            $summary[] = app()->formatter->asMoney(
+                                +$sum, Currency::getCurrencySymbol($currency_id));
+                        }
+                        $rejectedSum = join(", ", $summary);
+                        echo $rejectedSum;
+                        ?>
+                    </b>
+                </td>
+                <?php if (!empty($statistics['rejected']['device']['IOS'])): ?>
+                    <?php foreach ($statistics['rejected']['device']['IOS'] as $deviceCnt): ?>
+                        <td><?= Html::encode($deviceCnt); ?></td>
+                    <? endforeach; ?>
+                <?php else: ?>
+                    <td>0</td>
+                <?php endif; ?>
+                <?php if (!empty($statistics['rejected']['device']['ANDROID'])): ?>
+                    <?php foreach ($statistics['rejected']['device']['ANDROID'] as $deviceCnt): ?>
+                        <td><?= Html::encode($deviceCnt); ?></td>
+                    <? endforeach; ?>
+                <?php else: ?>
+                    <td>0</td>
+                <?php endif; ?>
+                <td><?= Html::encode($statistics['rejected']['device']['DISPATCHER']) ?></td>
+                <td><?= Html::encode($statistics['rejected']['device']['WORKER']) ?></td>
+                <td><?= Html::encode($statistics['rejected']['device']['WEB']) ?></td>
+                <td><?= Html::encode($statistics['rejected']['device']['CABINET']) ?></td>
+                <td><?= Html::encode($statistics['rejected']['workers']) ?></td>
+                <td><? if (!empty($statistics['rejected']['quantity'])): ?><i class="oor_t_arrow"><? endif ?></i></td>
+            </tr>
+            <?php foreach ($statistics['rejected']['detail']['reasons']['rejected'] as $key => $value): ?>
+                <tr data-theadc="04" class="oor_second" style="display: none">
+                    <?php if ($key == 'after'): ?>
+                        <? foreach ($value as $statusId => $cnt): ?>
+                            <td style="text-align: left;"><b><?= t('reports',
+                                        'Cancel after') . ': ' . $statistics['status_map'][$statusId] ?></b></td>
+                            <td><b><?= $cnt ?></b></td>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <td style="text-align: left;"><b><?= $statistics['status_map'][$key] ?></b></td>
+                        <td><b><?= $value ?></b></td>
+                    <?php endif; ?>
+                    <td colspan="<?= 8 + $appCnt ?>"></td>
+                </tr>
+            <?php endforeach; ?>
+            <tr data-theadc="04" class="oor_second oors_st" style="display: none">
+                <td colspan="4">
+                    <h4><?= t('reports', 'Bad reviews') ?></h4>
+                    <div style="margin-bottom: 10px">
+                        <span class="clir_stars"><i class="active"></i><i class="active"></i></span>
+                        <b><?= Html::encode($statistics['bad_feedback']['two']) ?></b>
+                    </div>
+                    <div style="margin-bottom: 10px">
+                        <span class="clir_stars"><i style="background: none;"></i><i class="active"></i></span>
+                        <b><?= Html::encode($statistics['bad_feedback']['one']) ?></b>
+                    </div>
+                </td>
+                <td colspan="<?= 6 + $appCnt ?>">
+                    <h4><?= t('reports', 'You could earn') ?></h4>
+                    <b><?= t('reports', 'Of the order of') ?> <?= $rejectedSum; ?></b>
+                    <p>(<?= t('reports', 'Taking into account the average price of the order') ?>)</p>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+<? else: ?>
+    <p><?= t('app', 'Empty') ?></p>
+<? endif;
+
+Pjax::end();

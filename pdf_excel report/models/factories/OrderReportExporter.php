@@ -1,0 +1,43 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: zigfried123
+ * Date: 12.02.2018
+ * Time: 17:22
+ */
+
+namespace app\modules\reports\models\orders\factories;
+
+use app\modules\reports\models\orders\exporters\byExport\OrderExcelReportExporter;
+use app\modules\reports\models\orders\exporters\byExport\OrderPdfReportExporter;
+use app\modules\reports\models\orders\interfaces\OrderReportExporterByExportType;
+
+class OrderReportExporter
+{
+    public $headers;
+    public $rows;
+    public $content;
+
+    public function __construct($data)
+    {
+        $this->headers = $data['headers'];
+        $this->rows = $data['rows'];
+        $this->content = $data['content'];
+    }
+
+
+    public function getInstance($exportType)
+    {
+        if ($exportType === OrderReportExporterByExportType::EXPORT_TYPE_EXCEL) {
+            $file = 'report.xlsx';
+            return new OrderExcelReportExporter($this->headers,$this->rows,$file);
+        } elseif ($exportType === OrderReportExporterByExportType::EXPORT_TYPE_PDF) {
+            $file = 'report.pdf';
+            return new OrderPdfReportExporter($this->content,$file);
+        }
+
+        return false;
+    }
+
+
+}
